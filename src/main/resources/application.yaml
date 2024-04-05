@@ -1,5 +1,5 @@
 datasource:
   driver-class-name: org.postgresql.Driver
-  url: jdbc:postgresql://localhost:5432/Cliniс
+  url: jdbc:postgresql://localhost:5432/cliniс
   username: postgres
-  password: 19720203RIt
+  password: "123"

@@ -29,10 +29,14 @@ public class AddPatientServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
+        processRequest(req, resp);
+    }
+
+    public void processRequest(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
             PatientDTO dto = objectMapper.readValue(req.getReader(), PatientDTO.class);
             patientDAO.savePatient(dto);
-            resp.setContentType("application/json");
+            resp.setContentType("text/plain");
             resp.getWriter().write("Patient is created!");
 
         } catch (JsonParseException e) {

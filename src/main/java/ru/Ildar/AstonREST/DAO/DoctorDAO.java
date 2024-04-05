@@ -1,13 +1,23 @@
 package ru.Ildar.AstonREST.DAO;
 
+import java.util.Map;
+import java.util.Optional;
+
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import ru.Ildar.AstonREST.config.AppConfig;
-import ru.Ildar.AstonREST.db.DataSourceConfiguration;
 import ru.Ildar.AstonREST.models.DTO.DoctorDTO;
 import ru.Ildar.AstonREST.models.DTO.PatientDTO;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+
+import static ru.Ildar.AstonREST.util.Constant.CommonConstants.PASSWORD;
+import static ru.Ildar.AstonREST.util.Constant.CommonConstants.USERNAME;
+import static ru.Ildar.AstonREST.util.Constant.JDBCFieldsConstants.DRIVER;
+import static ru.Ildar.AstonREST.util.Constant.JDBCFieldsConstants.URL;
 
 /**
  * Сервис для работы с Доктором
@@ -16,13 +26,25 @@ import java.util.List;
  */
 public class DoctorDAO {
 
+    private final DataSource dataSource;
+
+    public DoctorDAO(Map<String, Object> dataSourceProperties) {
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl((String) dataSourceProperties.get(URL));
+        config.setUsername((String) dataSourceProperties.get(USERNAME));
+        config.setPassword((String) dataSourceProperties.get(PASSWORD));
+        config.setDriverClassName((String) dataSourceProperties.get(DRIVER));
+
+        dataSource = new HikariDataSource(config);
+    }
+
     /**
      * Метод для создания доктора
      *
      * @param doctor данные доктора
      */
     public void saveDoctor(DoctorDTO doctor) {
-        try (Connection connection = DataSourceConfiguration.getConnection();
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement ps = connection.prepareStatement(
                      "INSERT INTO doctor(name, specialization) VALUES (?, ?)")) {
 
@@ -45,15 +67,15 @@ public class DoctorDAO {
     public List<DoctorDTO> findAllDoctors() {
         List<DoctorDTO> doctors = new ArrayList<>();
 
-        try (Connection connection = DataSourceConfiguration.getConnection();
-             PreparedStatement ps = connection.prepareStatement("SELECT id, name, specialization FROM doctor")) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement(
+                     "SELECT id, name, specialization FROM doctor")) {
 
             ResultSet resultSet = ps.executeQuery();
 
             while (resultSet.next()) {
                 String name = resultSet.getString("name");
                 String specialization = resultSet.getString("specialization");
-
 
                 doctors.add(new DoctorDTO(name, specialization));
             }
@@ -70,16 +92,18 @@ public class DoctorDAO {
      * @param id идентификатор доктора
      * @return доктор и лист с его пациентами
      */
-    public DoctorDTO findDoctorAndPatients(Integer id) {
+    public DoctorDTO findDoctorAndPatients(Long id) {
         List<PatientDTO> patients = new ArrayList<>();
         DoctorDTO doctor = new DoctorDTO();
 
-        try (Connection connection = DataSourceConfiguration.getConnection();
-             PreparedStatement ps = connection.prepareStatement("SELECT d.id, d.name as doctor_name," +
-                     " d.specialization as doctor_specialization, p.name as patient_name, p.age, p.sex " +
-                     "FROM Doctor d LEFT JOIN Patient p ON d.id = p.doctor_id WHERE d.id = ?")) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement(
+                     "SELECT d.id, d.name as doctor_name," +
+                             " d.specialization as doctor_specialization, p.name as patient_name, p.age, p.sex "
+                             +
+                             "FROM Doctor d LEFT JOIN Patient p ON d.id = p.doctor_id WHERE d.id = ?")) {
 
-            ps.setInt(1, id);
+            ps.setLong(1, id);
 
             ResultSet resultSet = ps.executeQuery();
             while (resultSet.next()) {
@@ -111,13 +135,14 @@ public class DoctorDAO {
      * @param id идентификатор доктора
      * @return данные доктора
      */
-    public DoctorDTO findDoctorById(Integer id) {
+    public Optional<DoctorDTO> findDoctorById(Long id) {
         DoctorDTO doctor = null;
 
-        try (Connection connection = DataSourceConfiguration.getConnection();
-             PreparedStatement ps = connection.prepareStatement("SELECT * FROM doctor where id = ?")) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement ps = connection.prepareStatement(
+                     "SELECT * FROM doctor where id = ?")) {
 
-            ps.setInt(1, id);
+            ps.setLong(1, id);
             ResultSet resultSet = ps.executeQuery();
 
             while (resultSet.next()) {
@@ -131,7 +156,7 @@ public class DoctorDAO {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return doctor;
+        return Optional.ofNullable(doctor);
     }
 
     /**
@@ -140,10 +165,11 @@ public class DoctorDAO {
      * @param id           идентификатор доктора
      * @param updateDoctor обновленные данные
      */
-    public void updateDoctor(Integer id, DoctorDTO updateDoctor) {
+    public void updateDoctor(Long id, DoctorDTO updateDoctor) {
         Connection connection = null;
         try {
-            connection = DataSourceConfiguration.getConnection();
+            connection = dataSource.getConnection();
+            ;
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -173,7 +199,7 @@ public class DoctorDAO {
             throw new IllegalArgumentException("Не передан идентификатор доктора для обновления !");
         }
 
-        AppConfig.getConnection(query, params, connection);
+        AppConfig.updateEntity(query, params, connection);
 
     }
 
@@ -182,16 +208,18 @@ public class DoctorDAO {
      *
      * @param id идентификатор доктора
      */
-    public void deleteDoctorById(Integer id) {
-        try (Connection connection = DataSourceConfiguration.getConnection();
+    public boolean deleteDoctorById(Long id) {
+        boolean deleteResult = false;
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement ps = connection.prepareStatement("DELETE FROM doctor WHERE id = ?")) {
-            ps.setInt(1, id);
+            ps.setLong(1, id);
 
             ps.executeUpdate();
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        return deleteResult;
     }
 }
 

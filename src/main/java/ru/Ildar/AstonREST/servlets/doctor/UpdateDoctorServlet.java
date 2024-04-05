@@ -28,9 +28,13 @@ public class UpdateDoctorServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
+        processRequest(req, resp);
+    }
+
+    private void processRequest(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
             DoctorDTO dto = objectMapper.readValue(req.getReader(), DoctorDTO.class);
-            doctorDAO.updateDoctor(Integer.valueOf(req.getParameter("id")), dto);
+            doctorDAO.updateDoctor(Long.valueOf(req.getParameter("id")), dto);
             resp.setContentType("application/json");
             resp.getWriter().write("Doctor is updated!");
         } catch (JsonParseException e) {

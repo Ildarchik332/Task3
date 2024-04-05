@@ -25,6 +25,10 @@ public class DeleteDrugServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
+        processRequest(req, resp);
+    }
+
+    public void processRequest(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
             String id = req.getParameter("id");
             drugDAO.deleteDrugById(Long.valueOf(id));

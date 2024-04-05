@@ -21,13 +21,16 @@ public class DeleteDoctorServlet extends HttpServlet {
 
     private static final String DOCTOR_DELETE_ERROR = "Произошла ошибка при удаление доктора !";
 
-
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
+        processRequest(req, resp);
+    }
+
+    public void processRequest(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
             String id = req.getParameter("id");
-            doctorDao.deleteDoctorById(Integer.valueOf(id));
+            doctorDao.deleteDoctorById(Long.valueOf(id));
             resp.setContentType("application/json");
             resp.getWriter().write("Doctor is deleted!");
         } catch (IOException e) {

@@ -28,6 +28,11 @@ public class UpdateDrugServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
+        processRequest(req, resp);
+
+    }
+
+    public void processRequest(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
             DrugDTO dto = objectMapper.readValue(req.getReader(), DrugDTO.class);
             drugDAO.updateDrug(Long.valueOf(req.getParameter("id")), dto);
@@ -40,7 +45,6 @@ public class UpdateDrugServlet extends HttpServlet {
             resp.setContentType("text/plain");
             resp.getWriter().write(DRUG_UPDATE_ERROR);
         }
-
     }
 }
 

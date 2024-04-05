@@ -1,16 +1,26 @@
 package ru.Ildar.AstonREST.DAO;
 
 
+import java.util.Map;
+import java.util.Optional;
+
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import ru.Ildar.AstonREST.config.AppConfig;
-import ru.Ildar.AstonREST.db.DataSourceConfiguration;
 import ru.Ildar.AstonREST.models.DTO.PatientDTO;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+
+import static ru.Ildar.AstonREST.util.Constant.CommonConstants.PASSWORD;
+import static ru.Ildar.AstonREST.util.Constant.CommonConstants.USERNAME;
+import static ru.Ildar.AstonREST.util.Constant.JDBCFieldsConstants.DRIVER;
+import static ru.Ildar.AstonREST.util.Constant.JDBCFieldsConstants.URL;
 
 /**
  * Сервис для работы с пациентом
@@ -19,15 +29,27 @@ import java.util.List;
  */
 public class PatientDAO {
 
+     private final DataSource dataSource;
+
+     public PatientDAO(Map<String, Object> dataSourceProperties) {
+         HikariConfig config = new HikariConfig();
+         config.setJdbcUrl((String) dataSourceProperties.get(URL));
+         config.setUsername((String) dataSourceProperties.get(USERNAME));
+         config.setPassword((String) dataSourceProperties.get(PASSWORD));
+         config.setDriverClassName((String) dataSourceProperties.get(DRIVER));
+
+         dataSource = new HikariDataSource(config);
+     }
+
     /**
      * Метод для создания пациента
      *
      * @param patient Данные пациента
      */
     public void savePatient(PatientDTO patient) {
-        try (Connection connection = DataSourceConfiguration.getConnection();
-             PreparedStatement ps = connection.prepareStatement(
-                     "INSERT INTO patient(name, age, sex) VALUES (?, ?, ?)")) {
+        try (Connection connection = dataSource.getConnection();
+            PreparedStatement ps = connection.prepareStatement(
+                "INSERT INTO patient(name, age, sex) VALUES (?, ?, ?)")) {
 
             ps.setString(1, patient.getName());
             ps.setInt(2, patient.getAge());
@@ -49,8 +71,8 @@ public class PatientDAO {
     public List<PatientDTO> findAllPatients() {
         List<PatientDTO> patients = new ArrayList<>();
 
-        try (Connection connection = DataSourceConfiguration.getConnection();
-             PreparedStatement ps = connection.prepareStatement("SELECT * FROM patient")) {
+        try (Connection connection =dataSource.getConnection();
+            PreparedStatement ps = connection.prepareStatement("SELECT * FROM patient")) {
 
             ResultSet resultSet = ps.executeQuery();
 
@@ -71,10 +93,11 @@ public class PatientDAO {
 
     public List<PatientDTO> findPatientDrugs(Long drugId) {
         List<PatientDTO> patients = new ArrayList<>();
-        try (Connection connection = DataSourceConfiguration.getConnection();
-             PreparedStatement ps = connection.prepareStatement("SELECT p.id, p.name, p.age FROM patient p " +
-                     "JOIN patient_drug pr ON p.id = pr.patient_id " +
-                     "WHERE pr.drug_id = ?")) {
+        try (Connection connection = dataSource.getConnection();
+            PreparedStatement ps = connection.prepareStatement(
+                "SELECT p.id, p.name, p.age FROM patient p " +
+                    "JOIN patient_drug pr ON p.id = pr.patient_id " +
+                    "WHERE pr.drug_id = ?")) {
 
             ps.setLong(1, drugId);
 
@@ -82,9 +105,9 @@ public class PatientDAO {
 
             while (resultSet.next()) {
                 PatientDTO patient = new PatientDTO(
-                        resultSet.getLong("id"),
-                        resultSet.getString("name"),
-                        resultSet.getInt("age"));
+                    resultSet.getLong("id"),
+                    resultSet.getString("name"),
+                    resultSet.getInt("age"));
                 patients.add(patient);
             }
         } catch (Exception e) {
@@ -99,12 +122,12 @@ public class PatientDAO {
      * @param id идентификатор пациента
      * @return данные пациента
      */
-    public PatientDTO findByPatientId(Long id) {
+    public Optional<PatientDTO> findPatientById(Long id) {
         PatientDTO patient = null;
 
-        try (Connection connection = DataSourceConfiguration.getConnection();
-             PreparedStatement ps = connection.prepareStatement(
-                     "SELECT * FROM patient where id = ?")) {
+        try (Connection connection = dataSource.getConnection();
+            PreparedStatement ps = connection.prepareStatement(
+                "SELECT * FROM patient where id = ?")) {
 
             ps.setLong(1, id);
             ResultSet resultSet = ps.executeQuery();
@@ -121,7 +144,7 @@ public class PatientDAO {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return patient;
+        return Optional.ofNullable(patient);
     }
 
     /**
@@ -130,10 +153,10 @@ public class PatientDAO {
      * @param id            идентификатор пациента
      * @param updatePatient обновленные данные
      */
-    public void updatePatient(Integer id, PatientDTO updatePatient) {
+    public void updatePatient(Long id, PatientDTO updatePatient) {
         Connection connection = null;
         try {
-            connection = DataSourceConfiguration.getConnection();
+            connection = dataSource.getConnection();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -172,10 +195,11 @@ public class PatientDAO {
             query.append(" WHERE id = ?");
             params.add(id);
         } else {
-            throw new IllegalArgumentException("Не передан идентификатор пациента для обновления !");
+            throw new IllegalArgumentException(
+                "Не передан идентификатор пациента для обновления !");
         }
 
-        AppConfig.getConnection(query, params, connection);
+        AppConfig.updateEntity(query, params, connection);
 
     }
 
@@ -184,15 +208,18 @@ public class PatientDAO {
      *
      * @param id идентификатор пациента
      */
-    public void deletePatientById(Integer id) {
-        try (Connection connection = DataSourceConfiguration.getConnection();
-             PreparedStatement ps = connection.prepareStatement("DELETE FROM patient WHERE id = ?")) {
-            ps.setInt(1, id);
+    public boolean deletePatientById(Long id) {
+        boolean deleteResult = false;
+        try (Connection connection = dataSource.getConnection();
+            PreparedStatement ps = connection.prepareStatement(
+                "DELETE FROM patient WHERE id = ?")) {
+            ps.setLong(1, id);
 
-            ps.executeUpdate();
+            deleteResult = ps.executeUpdate() > 0;
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        return deleteResult;
     }
 }

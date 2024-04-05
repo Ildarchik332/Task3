@@ -29,7 +29,7 @@ public class FindPatientsFromDoctorServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
             String doctorId = req.getParameter("doctorId");
-            DoctorDTO doctorAndPatients = doctorDAO.findDoctorAndPatients(Integer.valueOf(doctorId));
+            DoctorDTO doctorAndPatients = doctorDAO.findDoctorAndPatients(Long.valueOf(doctorId));
             resp.setContentType("application/json");
             resp.getWriter().write(objectMapper.writeValueAsString(doctorAndPatients));
         } catch (IOException e) {

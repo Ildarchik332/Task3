@@ -29,7 +29,7 @@ public class UpdatePatientServlet extends HttpServlet {
 
         try {
             PatientDTO dto = objectMapper.readValue(req.getReader(), PatientDTO.class);
-            patientDAO.updatePatient(Integer.valueOf(req.getParameter("id")), dto);
+            patientDAO.updatePatient(Long.valueOf(req.getParameter("id")), dto);
             resp.setContentType("application/json");
             resp.getWriter().write("Drug is updated!");
         } catch (JsonParseException e) {

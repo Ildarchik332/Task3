@@ -1,16 +1,26 @@
 package ru.Ildar.AstonREST.DAO;
 
 
+import java.util.Map;
+import java.util.Optional;
+
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import ru.Ildar.AstonREST.config.AppConfig;
-import ru.Ildar.AstonREST.db.DataSourceConfiguration;
 import ru.Ildar.AstonREST.models.DTO.DrugDTO;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+
+import static ru.Ildar.AstonREST.util.Constant.CommonConstants.PASSWORD;
+import static ru.Ildar.AstonREST.util.Constant.CommonConstants.USERNAME;
+import static ru.Ildar.AstonREST.util.Constant.JDBCFieldsConstants.DRIVER;
+import static ru.Ildar.AstonREST.util.Constant.JDBCFieldsConstants.URL;
 
 /**
  * Сервис для работы с лекарством
@@ -19,13 +29,24 @@ import java.util.List;
  */
 public class DrugDAO {
 
+    private final DataSource dataSource;
+    public DrugDAO(Map<String, Object> dataSourceProperties){
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl((String) dataSourceProperties.get(URL));
+        config.setUsername((String) dataSourceProperties.get(USERNAME));
+        config.setPassword((String) dataSourceProperties.get(PASSWORD));
+        config.setDriverClassName((String) dataSourceProperties.get(DRIVER));
+
+        dataSource = new HikariDataSource(config);
+    }
+
     /**
      * Метод для создания лекарства
      *
      * @param drug данные лекарства
      */
     public void saveDrug(DrugDTO drug) {
-        try (Connection connection = DataSourceConfiguration.getConnection();
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement ps = connection.prepareStatement(
                      "INSERT INTO drug (title) VALUES (?)")) {
 
@@ -46,7 +67,7 @@ public class DrugDAO {
     public List<DrugDTO> findAllDrugs() {
         List<DrugDTO> drugs = new ArrayList<>();
 
-        try (Connection connection = DataSourceConfiguration.getConnection();
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement ps = connection.prepareStatement("SELECT id, title FROM drug")) {
 
             ResultSet resultSet = ps.executeQuery();
@@ -73,7 +94,7 @@ public class DrugDAO {
     public List<DrugDTO> findDrugPatients(Long patientId) {
 
         List<DrugDTO> drugs = new ArrayList<>();
-        try (Connection connection = DataSourceConfiguration.getConnection();
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement ps = connection.prepareStatement("SELECT d.id, d.title FROM drug d " +
                      "JOIN patient_drug pr ON d.id = pr.drug_id " +
                      "WHERE pr.patient_id = ?")) {
@@ -100,10 +121,10 @@ public class DrugDAO {
      * @param id идентификатор лекарства
      * @return данные лекарства
      */
-    public DrugDTO findDrugById(Long id) {
+    public Optional<DrugDTO> findDrugById(Long id) {
         DrugDTO drug = null;
 
-        try (Connection connection = DataSourceConfiguration.getConnection();
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement ps = connection.prepareStatement("SELECT * FROM drug where id = ?")) {
 
             ps.setLong(1, id);
@@ -119,7 +140,7 @@ public class DrugDAO {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return drug;
+        return Optional.ofNullable(drug);
     }
 
     /**
@@ -131,7 +152,7 @@ public class DrugDAO {
     public void updateDrug(Long id, DrugDTO updateDrug) {
         Connection connection = null;
         try {
-            connection = DataSourceConfiguration.getConnection();
+            connection = dataSource.getConnection();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -154,7 +175,7 @@ public class DrugDAO {
             throw new IllegalArgumentException("Не передан идентификатор лекарства для обновления !");
         }
 
-        AppConfig.getConnection(query, params, connection);
+        AppConfig.updateEntity(query, params, connection);
     }
 
     /**
@@ -162,8 +183,9 @@ public class DrugDAO {
      *
      * @param id идентификатор лекарства
      */
-    public void deleteDrugById(Long id) {
-        try (Connection connection = DataSourceConfiguration.getConnection();
+    public boolean deleteDrugById(Long id) {
+        boolean deleteResult = false;
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement ps = connection.prepareStatement("DELETE FROM drug WHERE id = ?")) {
             ps.setLong(1, id);
 
@@ -172,5 +194,6 @@ public class DrugDAO {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        return deleteResult;
     }
 }

@@ -15,12 +15,19 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class DoctorDTO {
+    private Long id;
     private String name;
     private String specialization;
     private List<PatientDTO> patientList;
 
 
     public DoctorDTO(String name, String specialization) {
+        this.name = name;
+        this.specialization = specialization;
+    }
+
+    public DoctorDTO(Long id, String name, String specialization) {
+        this.id = id;
         this.name = name;
         this.specialization = specialization;
     }

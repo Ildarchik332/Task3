@@ -28,6 +28,11 @@ public class AddDoctorServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
+        processRequest(req, resp);
+
+    }
+
+    public void processRequest(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         try {
             DoctorDTO dto = objectMapper.readValue(req.getReader(), DoctorDTO.class);
             doctorDao.saveDoctor(dto);
@@ -41,6 +46,5 @@ public class AddDoctorServlet extends HttpServlet {
             resp.setContentType("text/plain");
             resp.getWriter().write(DOCTOR_ADD_ERROR);
         }
-
     }
 }

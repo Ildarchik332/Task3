@@ -11,6 +11,8 @@ CREATE TABLE patient
     name varchar               not null,
     age  int check ( age > 0 ) not null,
     sex  varchar               not null
+    doctor_id int,
+    foreign key (doctor_id) references doctor(id)
 );
 CREATE TABLE drug
 (

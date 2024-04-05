@@ -29,6 +29,10 @@ public class ShowDrugServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
 
+        processRequest(resp);
+    }
+
+    public void processRequest(HttpServletResponse resp) throws IOException {
         try {
             List<DrugDTO> allDrugs = drugDAO.findAllDrugs();
             resp.setContentType("application/json");
